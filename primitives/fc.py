@@ -14,7 +14,7 @@ class CoreOperations:
 		self.coreList.sort()																# alphabetical order
 		self.coreDictionary = {} 															# convert to dictionary
 		for n in range(0,len(self.coreList)):
-			self.coreDictionary[self.coreList[n]] = n+1
+			self.coreDictionary[self.coreList[n]] = (n+1) * 2
 
 	def getName(self,id):																	# id -> name
 		return self.coreList[id]

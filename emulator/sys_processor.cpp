@@ -43,7 +43,6 @@ static LONG32 cycles;																// Cycle counter
 
 #define PUSHD(v) { dsp -= 4;memory[dsp >> 2] = (v); }
 #define PUSHR(v) { rsp -= 4;memory[rsp >> 2] = (v); }
-#define PUSHT(n) { n1 = ((n) != 0) ? 0xFFFFFFFF : 0; PUSHD(n1); }
 
 #define PULLD(tgt) { tgt = memory[dsp >> 2];dsp += 4; }
 #define PULLR(tgt) { tgt = memory[rsp >> 2];rsp += 4; }
@@ -54,16 +53,26 @@ static LONG32 cycles;																// Cycle counter
 
 #define CHECK(a) if (((a) & 3) != 0) { exit(fprintf(stderr,"Address failure %08x",a)); }
 
+#define CONST(n) { memory[pctr >> 2] = ((n) & 0x7FFFFFFF); pctr += 4; }
+#define CALL(n) { memory[pctr >> 2] = (((n) >> 1) | 0x80000000); pctr += 4; }
+#define CMD(n) { CALL(n); }
 // *******************************************************************************************************************************
 //														Reset the CPU
 // *******************************************************************************************************************************
 
 void CPUReset(void) {
 	HWIReset();
-	pctr = 0x00000;
+	pctr = 0x00100;
 	rsp = RST_RSP;
 	dsp = RST_DSP;
 	cycles = 0;
+
+	CONST(42);
+	CONST(32);
+	CONST(-1);
+	CALL(0x200);
+	CMD(24)
+	pctr = 0x00100;
 }
 
 // *******************************************************************************************************************************
@@ -75,6 +84,19 @@ BYTE8 CPUExecuteInstruction(void) {
 	LONG32 instruction = memory[pctr >> 2];											// Fetch instruction
 	pctr = (pctr + 4) & MMASK;														// Bump PC
 
+	if ((instruction & 0x80000000) == 0) {											// Constant
+		LONG32 n = instruction;
+		if (n & 0x40000000) n |= 0x80000000;
+		PUSHD(n);
+	} else {
+		LONG32 addr = (instruction & 0x7FFFFFFF) << 1;								// Call (address)
+		if (addr <= COP_COUNT * 2) { 												// Primitives 2,4,6,...,
+			// TODO: Execute primitives.
+		} else {
+			PUSHR(pctr);
+			pctr = addr;
+		}
+	}
 	cycles++;
 	if (cycles < CYCLES_PER_FRAME) return 0;										// Not completed a frame.
 	cycles = cycles - CYCLES_PER_FRAME;												// Adjust this frame rate.
@@ -101,7 +123,7 @@ BYTE8 CPUExecute(LONG32 breakPoint1,LONG32 breakPoint2) {
 // *******************************************************************************************************************************
 
 LONG32 CPUGetStepOverBreakpoint(void) {
-	return pctr;	
+	return pctr+4;	
 }
 
 // *******************************************************************************************************************************

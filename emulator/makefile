@@ -1,5 +1,5 @@
 SOURCES = framework/main.cpp framework/gfx.cpp framework/debugger.cpp sys_processor.cpp sys_debug_forthvm.cpp hardware.cpp
-APPNAME = vmforth
+APPNAME = owforth
 
 CC = g++
 

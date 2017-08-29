@@ -91,8 +91,21 @@ void DBGXRender(int *address,int runMode) {
 
 		char szBuffer[64],*p;
 		int colour = DBGC_DATA;
-		sprintf(szBuffer,"%x:%x",addr,code);
-		colour = 0xF80;
+
+		if ((code & 0x80000000) != 0) {
+			code = (code << 1) & 0xFFFFFFFF;
+			sprintf(szBuffer,"call %05x",code);
+			colour = 0x0FF;				
+			if (code <= COP_COUNT * 2) {
+				colour = 0xFF0;				
+				strcpy(szBuffer,__primitives[code/2]);
+			}
+		} else {
+			if ((code & 0x40000000) != 0) code |= 0x80000000;
+			sprintf(szBuffer,"%d",code);
+			colour = 0xF80;
+		}
+
 		szBuffer[32] = '\0';
 		GFXString(GRID(6,y),szBuffer,GRIDSIZE,colour,-1);
 	}
